@@ -19,23 +19,18 @@ const Modal = {
   },
 };
 
+const Storage = {
+  get() {
+    return JSON.parse(localStorage.getItem("dev.finances:transactions")) || []
+  },
+
+  set(transactions) {
+    localStorage.setItem("dev.finaces:transactions", JSON.stringify(transactions))
+  }
+}
+
 const Transaction = {
-  all: [
-    {
-      description: 'Luz',
-      amount: -50000,
-      date: '23/01/2021'
-    },
-    {
-      description: 'Website',
-      amount: 500000,
-      date: '23/01/2021'
-    },
-    {
-      description: 'Internet',
-      amount: -20000,
-      date: '23/01/2021'
-    }],
+  all: Storage.get(),
   add(transaction) {
     Transaction.all.push(transaction)
 
@@ -81,11 +76,11 @@ const DOM = {
   transactionContainer: document.querySelector('#data-table tbody'),
   addTransaction(transaction, index) {
     const tr = document.createElement('tr')
-    tr.innerHTML = DOM.innerHTMLTransaction(transaction)
-
+    tr.innerHTML = DOM.innerHTMLTransaction(transaction, index)
+    tr.dataset.index = index
     DOM.transactionContainer.appendChild(tr)
   },
-  innerHTMLTransaction(transaction) {
+  innerHTMLTransaction(transaction, index) {
     const CSSclass = transaction.amount > 0 ? "income" : "expense"
 
     const amount = Utils.formatCurrency(transaction.amount)
@@ -95,7 +90,7 @@ const DOM = {
     <td class="${CSSclass}">${amount}</td>
     <td class="date">${transaction.date}</td>
     <td>
-      <img src="./assets/minus.svg" alt="Remover Transação" />
+      <img class="delete" onclick="Transaction.remove(${index})" src="./assets/minus.svg" alt="Remover Transação"/>
     </td>
     `
     return html
@@ -129,7 +124,7 @@ const Utils = {
   formatAmount(value) {
     value = Number(value) * 100
 
-    return value
+    return Math.round(value)
   },
 
   formatCurrency(value) {
@@ -196,7 +191,7 @@ const Form = {
     try {
       // Verificar se todas as informções foram preechidas
       Form.validateFields()
-      const transaction = Form.validateFields()
+      const transaction = Form.formatValues()
 
       // Formatar os dado para salvar
       Form.formatValues()
@@ -218,11 +213,13 @@ const Form = {
 
 const App = {
   init() {
-    Transaction.all.forEach(transaction => {
-      DOM.addTransaction(transaction)
+    Transaction.all.forEach((transaction, index) => {
+      DOM.addTransaction(transaction, index)
     })
 
     DOM.updateBalance()
+
+    Storage.set(Transaction.all)
 
   },
   reload() {
